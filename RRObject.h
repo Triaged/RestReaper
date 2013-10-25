@@ -1,0 +1,18 @@
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+//  RRObject.h
+//
+//  Created by Dalton Cherry on 10/25/13.
+//
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#import <Foundation/Foundation.h>
+#import "Reaper.h"
+
+@interface RRObject : NSObject<ReaperDataSource>
+
+@property(nonatomic,strong)NSNumber *objID;
+@property(nonatomic,strong)NSDate *createdAt;
+@property(nonatomic,strong)NSDate *updatedAt;
+
+@end
