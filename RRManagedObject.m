@@ -1,15 +1,16 @@
-////////////////////////////////////////////////////////////////////////////////////////////////////
 //
-//  RRObject.m
+//  RRManagedObject.m
+//  iOSTester
 //
-//  Created by Dalton Cherry on 10/25/13.
+//  Created by Dalton Cherry on 10/28/13.
+//  Copyright (c) 2013 Lightspeed Systems. All rights reserved.
 //
-////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#import "RRObject.h"
+#import "RRManagedObject.h"
 
-@implementation RRObject
+@implementation RRManagedObject
 
+@dynamic objID,updatedAt,createdAt;
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 +(void)reapIndex:(void (^)(Reaper *reaper,NSArray* objects))success
          failure:(void (^)(Reaper *reaper, NSError *error))failure
@@ -49,26 +50,13 @@
 -(void)reapSave:(void (^)(Reaper *reaper,id item))success
         failure:(void (^)(Reaper *reaper, NSError *error))failure
 {
-    ReaperAction action = ReaperActionUpdate;
-    if(!self.objID)
-        action = ReaperActionCreate;
-    NSMutableDictionary* values = [Reaper createPostValues:[[self class] excludedParameters:action] object:self class:[self class]];
-    if(action == ReaperActionCreate)
-        [[self class] reapCreate:values success:success failure:failure];
-    else
-        [[self class] reapUpdate:self.objID parameters:values success:^(Reaper* reaper, id item){
-            if(item)
-                success(reaper,item);
-            else
-                success(reaper,self); //this will need to call save on a NSManagedObject subclass
-            
-        }failure:failure];
+    NSLog(@"doing nothing!");
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 -(void)reapDestroy:(void (^)(Reaper *reaper))success
            failure:(void (^)(Reaper *reaper, NSError *error))failure
 {
-    [[self class] reapDestroy:self.objID success:success failure:failure];
+    NSLog(@"doing nothing!");
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 +(Reaper*)reaperType
@@ -86,6 +74,48 @@
 +(NSArray*)excludedParameters:(ReaperAction)action
 {
     return nil;
+}
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+@end
+
+@implementation NSManagedObject (RRManagedObject)
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+-(void)reapSave:(void (^)(Reaper *reaper,id item))success
+failure:(void (^)(Reaper *reaper, NSError *error))failure
+{
+    RRManagedObject* object = (RRManagedObject*)self;
+    Class class = NSClassFromString(self.entity.name);
+    ReaperAction action = ReaperActionUpdate;
+    if(!object.objID || [object.objID isEqualToNumber:[NSNumber numberWithInt:0]])
+        action = ReaperActionCreate;
+    NSMutableDictionary* values = [Reaper createPostValues:[class excludedParameters:action] object:object class:class];
+    if(action == ReaperActionCreate)
+        [class reapCreate:values success:success failure:failure];
+    else
+        [class reapUpdate:object.objID parameters:values success:^(Reaper* reaper, id item){
+            if(item)
+                success(reaper,item);
+            else
+            {
+                [class saveObject:self success:^(id object){
+                    success(reaper,object);
+                }failure:^(NSError* error){
+                    failure(reaper,error);
+                }];
+            }
+            
+        }failure:failure];
+    
+}
+////////////////////////////////////////////////////////////////////////////////////////////////////
+-(void)reapDestroy:(void (^)(Reaper *reaper))success
+failure:(void (^)(Reaper *reaper, NSError *error))failure
+{
+    RRManagedObject* object = (RRManagedObject*)self;
+    Class class = NSClassFromString(self.entity.name);
+    [class reapDestroy:object.objID success:success failure:failure];
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
