@@ -1,9 +1,9 @@
 RestReaper
 ==========
 
-Makes RESTFul service interaction fast and easy for iOS and Mac OS X. It eliminates the boilerplate of parsing JSON and is completely asynchronous. It is design in mind with the popular Ruby on Rails API routes (Index,Show,Destroy,Update,Create or the CRUD model). It also has full support for coreData objects as well, so you can now synchronous RESTFul network resources without having to write a bunch of boilerplate code to make it happen. Sounds to good to be true, well head to the examples to make all your dreams come true!
+Makes RESTFul service interaction fast and easy for iOS and Mac OS X. It eliminates the boilerplate of parsing JSON and is completely asynchronous. It is design in mind with the popular Ruby on Rails API routes (Index, Show, Destroy, Update, Create or the CRUD model). It also has full support for coreData objects as well, so you can now synchronous RESTFul network resources without having to write a bunch of boilerplate code to make it happen. Sounds to good to be true? Well head to the examples to make all your dreams come true!
 
-# Examples #
+## Examples ##
 
 Our JSON objects looks something like this:
 
@@ -26,7 +26,8 @@ First we need to create a Reaper resource singleton object to interact with our 
 
 ```objective-c
 [Reaper initReaper:[NSURL URLWithString:@"http://mycoolRestService/"]];
-//[[Reaper sharedReaper].netManager.requestSerializer setAuthorizationHeaderFieldWithToken:@"token"]; //set our authToken if needed
+//set our authToken if needed using AFNetworking
+//[[Reaper sharedReaper].netManager.requestSerializer setAuthorizationHeaderFieldWithToken:@"token"]; 
 ```
 
 Here is an NSManagedObject example. Just change your subclass from NSMangedObject to RRManagedObject.
@@ -63,21 +64,18 @@ Then in our User.m file we need to add a methods
 }
 ```
 Now on to the good stuff!
-# Index #
+## Index ##
 
 ```objective-c
 //first pull all items from coreData that we have saved
 [User all:^(NSArray *items){
-    NSLog(@"coreData items: %@",items);
     for(User *user in items)
         NSLog(@"user.name: %@",user.name);
 	//now it is time to go reap the restful service
-    [User reapIndex:^(Reaper *reaper, NSArray* objects)
-     {
+    [User reapIndex:^(Reaper *reaper, NSArray* objects){
 		//update our people as employed
 	   	user.employed = [NSNumber numberWithBool:YES];
-		[user reapSave:^(Reaper *reaper, User *item)
-		{
+		[user reapSave:^(Reaper *reaper, User *item){
 			NSLog(@"successfully update: %@ employed: %@",item.name,item.employed);
 		}failure:^(Reaper *reaper, NSError* error){
 			NSLog(@"error: %@",[error localizedDescription]);
@@ -87,16 +85,15 @@ Now on to the good stuff!
      }];
 }];
 ```
-Let's breakdown what just happen. We first pulled all the User objects from CoreData so we know what we already have. Next we 'reaped' the index resource of our RESTFul service (which in this example is: http://mycoolRestService/users.json). The term 'reaped' means we queried the users.json, converted all the JSON objects into their proper User objects and saved/updated them in CoreData. Lastly we update each object's employed property to YES and did a reapSave, which sent the updated properties to your RESTFul service and saved the changes to CoreData. Note how you did not have to write a single line of boilerplate for interacting with the REST service or CoreData, you just got you use your objects as normal.
+Let's breakdown what just happen. We first pulled all the User objects from CoreData so we know what we already have. Next we 'reaped' the index resource of our RESTFul service (which in this example is: _http://mycoolRestService/users.json_). The term 'reaped' means we queried the users.json, converted all the JSON objects into their proper User objects and saved/updated them in CoreData. Lastly we update each object's employed property to YES and did a reapSave, which sent the updated properties to your RESTFul service and saved the changes to CoreData. Note how you did not have to write a single line of boilerplate for interacting with the REST service or CoreData, you just got you use your objects as normal.
 
-# Update #
+## Update ##
 
 ```objective-c
 //find the first object from CoreData
 [User where:@"objID == 1" success:^(id items){
 	user.employed = [NSNumber numberWithBool:YES];
-    [user reapSave:^(Reaper *reaper, User *item)
-     {
+    [user reapSave:^(Reaper *reaper, User *item){
          NSLog(@"successfully update: %@ employed: %@",item.name,item.employed);
      }failure:^(Reaper *reaper, NSError* error){
          NSLog(@"error: %@",[error localizedDescription]);
@@ -104,14 +101,13 @@ Let's breakdown what just happen. We first pulled all the User objects from Core
 }];
 ```
 
-# Delete #
+## Delete ##
 
 ```objective-c
 //find all John's and delete them
 [User all:^(NSArray *items){
 	if([user.name isEqualToString:@"John"])
     {
-        NSLog(@"delete it!");
         [user reapDestroy:^(Reaper* reaper){
             NSLog(@"John was successfully deleted");
         }failure:^(Reaper* reaper, NSError* error){
@@ -121,34 +117,78 @@ Let's breakdown what just happen. We first pulled all the User objects from Core
 }];
 ```
 
-# Create #
+## Create ##
 
 ```objective-c
 //Create a new John Object
 User* john = [User newObject]; //[[User alloc] init]; if not a ManagedObject
-    john.name = @"John";
-    john.firstName = @"John";
-    john.lastName = @"Doe";
-    john.age = @123;
-    john.password = @"test";
-    john.passwordConfirmation = @"test";
-    [john reapSave:^(Reaper *reaper, User *item){
-        NSLog(@"john objID: %@ name: %@",item.objID,item.name);
-    }failure:^(Reaper *reaper, NSError* error){
-        NSLog(@"error: %@",[error localizedDescription]);
-    }];
+john.name = @"John";
+john.firstName = @"John";
+john.lastName = @"Doe";
+john.age = @123;
+john.password = @"test";
+john.passwordConfirmation = @"test";
+[john reapSave:^(Reaper *reaper, User *item){
+    NSLog(@"john objID: %@ name: %@",item.objID,item.name);
+}failure:^(Reaper *reaper, NSError* error){
+    NSLog(@"error: %@",[error localizedDescription]);
+}];
 ```
 
-# Show #
+## Show ##
 ```objective-c
 //1 is the resource show action you want to reap. (e.g. http://mycoolRestService/users/1.json)
 [User reapShow:1 success:^(Reaper *reaper, id object){
-        NSLog(@"object: %@",object);
-        
-    }failure:^(Reaper *reaper, NSError* error){
-        NSLog(@"error: %@",[error localizedDescription]);
-    }];
+	NSLog(@"object: %@",object);    
+}failure:^(Reaper *reaper, NSError* error){
+	NSLog(@"error: %@",[error localizedDescription]);
+}];
 ```
+
+## Install ##
+
+The recommended approach for installing RestReaper is via the CocoaPods package manager, as it provides flexible dependency management and dead simple installation.
+
+via CocoaPods
+
+Install CocoaPods if not already available:
+
+	$ [sudo] gem install cocoapods
+	$ pod setup
+Change to the directory of your Xcode project, and Create and Edit your Podfile and add RestReaper:
+
+	$ cd /path/to/MyProject
+	$ touch Podfile
+	$ edit Podfile
+	platform :ios, '5.0' 
+	# Or platform :osx, '10.8'
+	pod 'RestReaper'
+
+Install into your project:
+
+	$ pod install
+	
+Open your project in Xcode from the .xcworkspace file (not the usual project file)
+
+## Requirements ##
+
+RestReaper requires at least iOS 5/Mac OSX 10.8 or above.
+It has dependencies on this frameworks:
+
+https://github.com/daltoniam/DCModel
+https://github.com/daltoniam/JSONJoy
+https://github.com/AFNetworking/AFNetworking
+
+
+## License ##
+
+RestReaper is license under the Apache License.
+
+## Contact ##
+
+### Dalton Cherry ###
+* https://github.com/daltoniam
+* http://twitter.com/daltoniam
 
 
 
