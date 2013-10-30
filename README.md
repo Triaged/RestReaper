@@ -175,9 +175,9 @@ Open your project in Xcode from the .xcworkspace file (not the usual project fil
 RestReaper requires at least iOS 5/Mac OSX 10.8 or above.
 It has dependencies on this frameworks:
 
-https://github.com/daltoniam/DCModel
-https://github.com/daltoniam/JSONJoy
-https://github.com/AFNetworking/AFNetworking
+* https://github.com/daltoniam/DCModel
+* https://github.com/daltoniam/JSONJoy
+* https://github.com/AFNetworking/AFNetworking
 
 
 ## License ##
