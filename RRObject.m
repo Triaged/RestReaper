@@ -14,8 +14,17 @@
 +(void)reapIndex:(void (^)(Reaper *reaper,NSArray* objects))success
          failure:(void (^)(Reaper *reaper, NSError *error))failure
 {
+    [self reapIndex:0 success:success failure:failure];
+}
+////////////////////////////////////////////////////////////////////////////////////////////////////
++(void)reapIndex:(int)page success:(void (^)(Reaper *reaper,NSArray* objects))success
+         failure:(void (^)(Reaper *reaper, NSError *error))failure
+{
     NSString* url = [Reaper resourceRoute:[self restResource] resource:nil];
-    [[self reaperType] reapIndex:[self class] url:url parameters:nil success:success failure:failure];
+    NSDictionary* parameter = nil;
+    if(page > 0)
+        parameter = @{@"page": [NSNumber numberWithInt:page]};
+    [[self reaperType] reapIndex:[self class] url:url parameters:parameter success:success failure:failure];
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 +(void)reapShow:(id)objectID success:(void (^)(Reaper *, id))success
@@ -60,7 +69,7 @@
             if(item)
                 success(reaper,item);
             else
-                success(reaper,self); //this will need to call save on a NSManagedObject subclass
+                success(reaper,self);
             
         }failure:failure];
 }

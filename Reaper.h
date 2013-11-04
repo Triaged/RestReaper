@@ -90,6 +90,17 @@ typedef enum {
          failure:(void (^)(Reaper *reaper, NSError *error))failure;
 
 /**
+ This reaps the index route and returns object of the class implementing the datasource protocol.
+ @param page is what page of the resource you want
+ @param success block returns the newly created objects of the class implementing the datasource protocol.
+ @param failure block returns if an error occured during the operation
+ */
++(void)reapIndex:(int)page success:(void (^)(Reaper *reaper,NSArray* objects))success
+         failure:(void (^)(Reaper *reaper, NSError *error))failure;
+
+
+
+/**
   This reaps the show route and returns object of the class implementing the datasource protocol.
   @param objectID is the id of the object you want to run the show action on
   @param success block returns the newly created object of the class implementing the datasource protocol.

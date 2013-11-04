@@ -11,12 +11,22 @@
 @implementation RRManagedObject
 
 @dynamic objID,updatedAt,createdAt;
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
++(void)reapIndex:(int)page success:(void (^)(Reaper *reaper,NSArray* objects))success
+         failure:(void (^)(Reaper *reaper, NSError *error))failure
+{
+    NSString* url = [Reaper resourceRoute:[self restResource] resource:nil];
+    NSDictionary* parameter = nil;
+    if(page > 0)
+        parameter = @{@"page": [NSNumber numberWithInt:page]};
+    [[self reaperType] reapIndex:[self class] url:url parameters:parameter success:success failure:failure];
+}
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 +(void)reapIndex:(void (^)(Reaper *reaper,NSArray* objects))success
          failure:(void (^)(Reaper *reaper, NSError *error))failure
 {
-    NSString* url = [Reaper resourceRoute:[self restResource] resource:nil];
-    [[self reaperType] reapIndex:[self class] url:url parameters:nil success:success failure:failure];
+    [self reapIndex:0 success:success failure:failure];
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 +(void)reapShow:(id)objectID success:(void (^)(Reaper *, id))success

@@ -66,7 +66,10 @@ static id reaper = nil;
          {
              if([NSNull null] != (NSNull*)object)
              {
-                 id value = [classType objectWithJoy:object];
+                 NSError* error = nil;
+                 id value = [classType objectWithJoy:object error:&error];
+                 if(error)
+                     return failure(self,error);
                  if(value)
                      [gather addObject:value];
                  if([value isKindOfClass:[NSManagedObject class]])
@@ -117,7 +120,10 @@ static id reaper = nil;
              failure(self,error);
              return;
          }
-         id value = [classType objectWithJoy:dict];
+         NSError* error = nil;
+         id value = [classType objectWithJoy:dict error:&error];
+         if(error)
+             return failure(self,error);
          if([value isKindOfClass:[NSManagedObject class]])
          {
              [value saveOrUpdate:^(id item){
@@ -199,7 +205,10 @@ static id reaper = nil;
          }
          if([dict isKindOfClass:[NSDictionary class]])
          {
-             id value = [classType objectWithJoy:dict];
+             NSError* error = nil;
+             id value = [classType objectWithJoy:dict error:&error];
+             if(error)
+                 return failure(self,error);
              if([value isKindOfClass:[NSManagedObject class]])
              {
                  [value saveOrUpdate:^(id item){
@@ -243,7 +252,10 @@ static id reaper = nil;
             failure(self,error);
             return;
         }
-        id value = [classType objectWithJoy:dict];
+        NSError* error = nil;
+        id value = [classType objectWithJoy:dict error:&error];
+        if(error)
+            return failure(self,error);
         if([value isKindOfClass:[NSManagedObject class]])
         {
             [classType updateObject:value success:^(id item){
