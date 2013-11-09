@@ -304,8 +304,8 @@ static id reaper = nil;
 {
     NSString* url = baseURL;
     NSString* format = @"";
-    if(![baseURL hasPrefix:@"/"])
-        url = [NSString stringWithFormat:@"/%@",baseURL];
+    //if(![baseURL hasPrefix:@"/"])
+    //    url = [NSString stringWithFormat:@"/%@",baseURL];
     if(!resource)
         return url;
     NSRange range = [url rangeOfString:@"." options:NSBackwardsSearch];
