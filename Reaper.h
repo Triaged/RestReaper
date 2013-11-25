@@ -155,6 +155,13 @@ typedef enum {
  */
 +(NSArray*)excludedParameters:(ReaperAction)action;
 
+/**
+ Returns a NSDictionary of the global params you want to send to your RESTFul service.
+ Default is nil, so no global params are added
+ @param action is the action being currently executed.
+ */
++(NSDictionary*)globalParameters:(ReaperAction)action;
+
 @end
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -169,14 +176,9 @@ typedef enum {
 ///-------------------------------
 
 /**
- Initializes and returns a Reaper singleton object with the baseURL for the RESTFul services.
- This method has to be run before sharedReaper method can be called.
- */
-+(instancetype)initReaper:(NSURL*)url;
-
-/**
  Returns the Reaper singleton.
- This is what you will use to interaction with the RESTFul services.
+ This is what you will use to interaction with the RESTFul services. 
+ Subclass this and create your own singleton
  */
 +(instancetype)sharedReaper;
 
@@ -256,6 +258,22 @@ failure:(void (^)(Reaper *reaper, NSError *error))failure;
  This would create (/users/1.json)
  */
 +(NSString*)resourceRoute:(NSString*)baseURL resource:(id)resource;
+
+/**
+ Combines two dictionaries and returns a a single combine one.
+ this is used primarly to combine global and local params on POST and PUT.
+ dict is the first dictionary to combine.
+ params is the second dictionary to combine.
+ */
++(NSDictionary*)combineParams:(NSDictionary*)dict params:(NSDictionary*)params;
+
+/**
+ Combines two dictonaries and returns a a single combine one.
+ this is used primarly to combine global and the page number for index calls.
+ dict is the dictionary to combine.
+ page is the page number to add to the dictionary.
+ */
++(NSDictionary*)combineParams:(NSDictionary*)dict page:(int)page;
 
 /**
  @return returns a parameter dictionary based on the object properties.

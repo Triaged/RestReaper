@@ -17,10 +17,9 @@
          failure:(void (^)(Reaper *reaper, NSError *error))failure
 {
     NSString* url = [Reaper resourceRoute:[self restResource] resource:nil];
-    NSDictionary* parameter = nil;
-    if(page > 0)
-        parameter = @{@"page": [NSNumber numberWithInt:page]};
-    [[self reaperType] reapIndex:[self class] url:url parameters:parameter success:success failure:failure];
+    [[self reaperType] reapIndex:[self class] url:url
+                      parameters:[Reaper combineParams:[self globalParameters:ReaperActionIndex] page:page]
+                         success:success failure:failure];
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 +(void)reapIndex:(void (^)(Reaper *reaper,NSArray* objects))success
@@ -33,28 +32,32 @@
         failure:(void (^)(Reaper *, NSError *))failure
 {
     NSString* url = [Reaper resourceRoute:[self restResource] resource:objectID];
-    [[self reaperType] reapShow:[self class] url:url parameters:nil success:success failure:failure];
+    [[self reaperType] reapShow:[self class] url:url parameters:[self globalParameters:ReaperActionShow] success:success failure:failure];
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 +(void)reapDestroy:(id)objectID success:(void (^)(Reaper *))success
            failure:(void (^)(Reaper *, NSError *))failure
 {
     NSString* url = [Reaper resourceRoute:[self restResource] resource:objectID];
-    [[self reaperType] reapDestroy:[self class] url:url parameters:nil success:success failure:failure];
+    [[self reaperType] reapDestroy:[self class] url:url parameters:[self globalParameters:ReaperActionDestroy] success:success failure:failure];
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 +(void)reapCreate:(NSDictionary *)postParams success:(void (^)(Reaper *, id))success
           failure:(void (^)(Reaper *, NSError *))failure
 {
     NSString* url = [Reaper resourceRoute:[self restResource] resource:nil];
-    [[self reaperType] reapCreate:[self class] url:url parameters:postParams success:success failure:failure];
+    [[self reaperType] reapCreate:[self class] url:url
+                       parameters:[Reaper combineParams:[self globalParameters:ReaperActionCreate] params:postParams]
+                          success:success failure:failure];
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 +(void)reapUpdate:(id)objectID parameters:(NSDictionary *)postParams success:(void (^)(Reaper *, id))success
           failure:(void (^)(Reaper *, NSError *))failure
 {
     NSString* url = [Reaper resourceRoute:[self restResource] resource:objectID];
-    [[self reaperType] reapUpdate:[self class] url:url parameters:postParams success:success failure:failure];
+    [[self reaperType] reapUpdate:[self class] url:url
+                       parameters:[Reaper combineParams:[self globalParameters:ReaperActionUpdate] params:postParams]
+                          success:success failure:failure];
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 -(void)reapSave:(void (^)(Reaper *reaper,id item))success
@@ -71,17 +74,26 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 +(Reaper*)reaperType
 {
+    @throw [NSException exceptionWithName:NSInternalInconsistencyException
+                                   reason:[NSString stringWithFormat:@"You must override the reaperType method in your subclass"]
+                                 userInfo:nil];
     return [Reaper sharedReaper];
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 +(NSString*)restResource
 {
-    //need to throw an error if the base class is implemented,
-    //as this has to be overridden to work properly.
+    @throw [NSException exceptionWithName:NSInternalInconsistencyException
+                                   reason:[NSString stringWithFormat:@"You must override the restResource method in your subclass"]
+                                 userInfo:nil];
     return nil;
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 +(NSArray*)excludedParameters:(ReaperAction)action
+{
+    return nil;
+}
+////////////////////////////////////////////////////////////////////////////////////////////////////
++(NSDictionary*)globalParameters:(ReaperAction)action
 {
     return nil;
 }

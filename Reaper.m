@@ -13,21 +13,20 @@
 
 @implementation Reaper
 
-static id reaper = nil;
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-+(instancetype)initReaper:(NSURL*)url
-{
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
-        reaper = [[[self class] alloc] initWithBaseURL:url];
-    });
-    return reaper;
-}
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 +(instancetype)sharedReaper
 {
-    return reaper;
+    //example of a singleton
+    /*static id reaper = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        reaper = [[[self class] alloc] initWithBaseURL:[NSURL urlWithString:@"myresturl"]];
+    });
+    return reaper;*/
+    @throw [NSException exceptionWithName:NSInternalInconsistencyException
+                                   reason:[NSString stringWithFormat:@"You must override the sharedReaper method in a subclass"]
+                                 userInfo:nil];
+    return nil;
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 -(instancetype)initWithBaseURL:(NSURL*)url
@@ -315,6 +314,26 @@ static id reaper = nil;
         url = [url substringToIndex:range.location];
     }
     return [NSString stringWithFormat:@"%@/%@%@",url,resource,format];
+}
+////////////////////////////////////////////////////////////////////////////////////////////////////
++(NSDictionary*)combineParams:(NSDictionary*)dict params:(NSDictionary*)params
+{
+    NSMutableDictionary* parameters = nil;
+    if(dict || params)
+        parameters = [NSMutableDictionary dictionary];
+    if(dict)
+        [parameters addEntriesFromDictionary:dict];
+    if(params)
+        [parameters addEntriesFromDictionary:params];
+    return parameters;
+}
+////////////////////////////////////////////////////////////////////////////////////////////////////
++(NSDictionary*)combineParams:(NSDictionary*)dict page:(int)page
+{
+    NSDictionary *pageParam = nil;
+    if(page > 0)
+        pageParam = @{@"page": [NSNumber numberWithInt:page]};
+    return [self combineParams:dict params:pageParam];
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 +(NSMutableDictionary*)createPostValues:(NSArray*)excludedParams object:(id)object class:(Class)classType

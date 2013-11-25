@@ -22,12 +22,24 @@ Our JSON objects looks something like this:
 }
 ```
 
-First we need to create a Reaper resource singleton object to interact with our RESTFul service.
+First we need to create a Reaper subclass singleton object to interact with our RESTFul service.
 
 ```objective-c
-[Reaper initReaper:[NSURL URLWithString:@"http://mycoolRestService/"]];
-//set our authToken if needed using AFNetworking
-//[[Reaper sharedReaper].netManager.requestSerializer setAuthorizationHeaderFieldWithToken:@"token"]; 
+@implementation APIReaper
+
++(instancetype)sharedReaper
+{
+    static APIReaper *reaper = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        reaper = [[[self class] alloc] initWithBaseURL:[NSURL URLWithString:@"http://myapiservice"]];
+        [reaper.netManager.requestSerializer setAuthorizationHeaderFieldWithToken:@"myauthtoken"];
+    });
+    return reaper;
+}
+
+@end
+ 
 ```
 
 Here is an NSManagedObject example. Just change your subclass from NSMangedObject to RRManagedObject.
@@ -54,6 +66,11 @@ Then in our User.m file we need to add a methods
 +(NSString*)restResource
 {
     return @"users.json";
+}
+
++(Reaper*)reaperType
+{
+    return [APIReaper sharedReaper];
 }
 
 +(NSArray*)excludedParameters:(ReaperAction)action
