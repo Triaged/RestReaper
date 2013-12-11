@@ -11,7 +11,7 @@
 
 @interface RRObject : NSObject<ReaperDataSource>
 
-@property(nonatomic,strong)NSNumber *objID;
+@property(nonatomic,strong)id objID;
 @property(nonatomic,strong)NSDate *createdAt;
 @property(nonatomic,strong)NSDate *updatedAt;
 

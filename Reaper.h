@@ -44,7 +44,7 @@ typedef enum {
 /**
  The object's ID from the RESTFul service database.
  */
--(NSNumber*)objID;
+-(id)objID;
 
 /**
  The created_at date from the RESTFul service database.

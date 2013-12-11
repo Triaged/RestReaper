@@ -110,7 +110,7 @@ failure:(void (^)(Reaper *reaper, NSError *error))failure
     RRManagedObject* object = (RRManagedObject*)self;
     Class class = NSClassFromString(self.entity.name);
     ReaperAction action = ReaperActionUpdate;
-    if(!object.objID || [object.objID isEqualToNumber:[NSNumber numberWithInt:0]])
+    if(!object.objID || [object.objID intValue] == 0)
         action = ReaperActionCreate;
     NSMutableDictionary* values = [Reaper createPostValues:[class excludedParameters:action] object:object class:class];
     if(action == ReaperActionCreate)
