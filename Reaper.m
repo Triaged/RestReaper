@@ -10,6 +10,7 @@
 #import "JSONJoy.h"
 #import "DCModel.h"
 #import <objc/runtime.h>
+#import "RRUploadObject.h"
 
 @implementation Reaper
 
@@ -18,11 +19,11 @@
 {
     //example of a singleton
     /*static id reaper = nil;
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
-        reaper = [[[self class] alloc] initWithBaseURL:[NSURL urlWithString:@"myresturl"]];
-    });
-    return reaper;*/
+     static dispatch_once_t onceToken;
+     dispatch_once(&onceToken, ^{
+     reaper = [[[self class] alloc] initWithBaseURL:[NSURL urlWithString:@"myresturl"]];
+     });
+     return reaper;*/
     @throw [NSException exceptionWithName:NSInternalInconsistencyException
                                    reason:[NSString stringWithFormat:@"You must override the sharedReaper method in a subclass"]
                                  userInfo:nil];
@@ -87,16 +88,16 @@
              success(self,gather);
          
      }
-    failure:^(AFHTTPRequestOperation *operation, NSError *error)
+                 failure:^(AFHTTPRequestOperation *operation, NSError *error)
      {
          failure(self,error);
      }];
-
+    
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 -(void)reapShow:(Class)classType url:(NSString*)url parameters:(NSDictionary *)parameters
-         success:(void (^)(Reaper *reaper,id object))success
-         failure:(void (^)(Reaper *reaper, NSError *error))failure
+        success:(void (^)(Reaper *reaper,id object))success
+        failure:(void (^)(Reaper *reaper, NSError *error))failure
 {
     [self.netManager GET:url parameters:parameters success:^(AFHTTPRequestOperation *operation, id responseObject)
      {
@@ -135,7 +136,7 @@
              success(self,value);
          
      }
-    failure:^(AFHTTPRequestOperation *operation, NSError *error)
+                 failure:^(AFHTTPRequestOperation *operation, NSError *error)
      {
          failure(self,error);
      }];
@@ -176,11 +177,11 @@
          else
              success(self);
      }
-    failure:^(AFHTTPRequestOperation *operation, NSError *error)
+                    failure:^(AFHTTPRequestOperation *operation, NSError *error)
      {
          failure(self,error);
      }];
-
+    
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 -(void)reapUpdate:(Class)classType url:(NSString*)url parameters:(NSDictionary *)parameters
@@ -220,7 +221,7 @@
          }
          success(self,nil);
      }
-    failure:^(AFHTTPRequestOperation *operation, NSError *error)
+                 failure:^(AFHTTPRequestOperation *operation, NSError *error)
      {
          failure(self,error);
      }];
@@ -230,47 +231,151 @@
           success:(void (^)(Reaper *reaper,id object))success
           failure:(void (^)(Reaper *reaper, NSError *error))failure
 {
-    [self.netManager POST:url parameters:parameters success:^(AFHTTPRequestOperation *operation, id responseObject)
+    BOOL multiForm = NO;
+    NSMutableDictionary *formDict = nil;
+    NSMutableDictionary * newParams = nil;
+    for(id key in parameters)
     {
-        NSDictionary* dict = responseObject;
-        if([responseObject isKindOfClass:[NSDictionary class]])
+        //automatic lookup attempts
+        if([parameters[key] isKindOfClass:[UIImage class]] || [parameters[key] isKindOfClass:[NSData class]] || [parameters[key] isKindOfClass:[NSURL class]] || [parameters[key] isKindOfClass:[RRUploadObject class]])
         {
-            NSError* error = [self checkError:responseObject];
-            if(error)
-            {
-                failure(self,error);
-                return;
-            }
-            NSDictionary* response = responseObject[@"response"];
-            if(response)
-                dict = response; //fairly typical for API response, like in the commonly used RoR gem, RocketPants.
+            if(!formDict)
+                formDict = [NSMutableDictionary dictionary];
+            if(!newParams)
+                newParams = [NSMutableDictionary dictionaryWithDictionary:parameters];
         }
-        if(![dict isKindOfClass:[NSDictionary class]])
+        if([parameters[key] isKindOfClass:[RRUploadObject class]])
         {
-            NSError* error = [self errorWithDetail:NSLocalizedString(@"Create response object is not of NSDictonary class", nil) code:ReaperErrorCodeInvalidResponse];
+            RRUploadObject *upload = parameters[key];
+            [formDict setObject:upload forKey:key];
+            multiForm = YES;
+            [newParams removeObjectForKey:key];
+        }
+#if TARGET_OS_IPHONE
+        else if([parameters[key] isKindOfClass:[UIImage class]])
+        {
+            UIImage *image = parameters[key];
+            RRUploadObject *obj = [RRUploadObject new];
+            obj.data =  UIImageJPEGRepresentation(image,0.5);
+            obj.mimeType = @"image/jpeg";
+            obj.fileName = NSLocalizedString(@"image.jpg", nil);
+            [formDict setObject:obj forKey:key];
+            multiForm = YES;
+            [newParams removeObjectForKey:key];
+        }
+#else
+        else if([parameters[key] isKindOfClass:[NSImage class]])
+        {
+            NSImage *image = parameters[key];
+            NSBitmapImageRep *bitmapRep = [NSBitmapImageRep imageRepWithData:[image TIFFRepresentation]];
+            
+            RRUploadObject *obj = [RRUploadObject new];
+            obj.data =  [bitmapRep representationUsingType:NSJPEGFileType properties:@{NSImageCompressionFactor: @0.5}];
+            obj.mimeType = @"image/jpeg";
+            obj.fileName = NSLocalizedString(@"image.jpg", nil);
+            [formDict setObject: forKey:key];
+            multiForm = YES;
+            [newParams removeObjectForKey:key];
+        }
+#endif
+        else if([parameters[key] isKindOfClass:[NSData class]])
+        {
+            NSData *data = parameters[key];
+            RRUploadObject *obj = [RRUploadObject new];
+            obj.data = data;
+            [formDict setObject:obj forKey:key];
+            multiForm = YES;
+            [newParams removeObjectForKey:key];
+        }
+        else if([parameters[key] isKindOfClass:[NSURL class]])
+        {
+            NSURL *url = parameters[key];
+            if([url isFileURL])
+            {
+                RRUploadObject *obj = [RRUploadObject new];
+                obj.fileURL = url;
+                obj.fileName = [url lastPathComponent];
+                [formDict setObject:obj forKey:key];
+                multiForm = YES;
+                [newParams removeObjectForKey:key];
+            }
+        }
+    }
+    if(multiForm)
+    {
+        parameters = newParams;
+        [self.netManager POST:url parameters:parameters constructingBodyWithBlock:^(id<AFMultipartFormData> formData) {
+            for(id key in formDict)
+            {
+                RRUploadObject *obj = formDict[key];
+                if(obj.fileURL && obj.mimeType)
+                    [formData appendPartWithFileURL:obj.fileURL name:key fileName:obj.fileName mimeType:obj.mimeType error:nil];
+                else if(obj.fileURL)
+                    [formData appendPartWithFileURL:obj.fileURL name:key error:nil];
+                else if(obj.mimeType && obj.fileName && obj.data)
+                    [formData appendPartWithFileData:obj.data name:key fileName:obj.fileName mimeType:obj.mimeType];
+                else
+                    [formData appendPartWithFormData:obj.data name:key];
+            }
+        }
+                      success:^(AFHTTPRequestOperation *operation, id responseObject){
+                          [self createResponse:responseObject classType:classType success:success failure:failure];
+                      }
+                      failure:^(AFHTTPRequestOperation *operation, NSError *error)
+         {
+             failure(self,error);
+         }];
+    }
+    else
+    {
+        [self.netManager POST:url parameters:parameters success:^(AFHTTPRequestOperation *operation, id responseObject)
+         {
+             [self createResponse:responseObject classType:classType success:success failure:failure];
+         }
+                      failure:^(AFHTTPRequestOperation *operation, NSError *error)
+         {
+             failure(self,error);
+         }];
+    }
+    
+}
+////////////////////////////////////////////////////////////////////////////////////////////////////
+-(void)createResponse:(id)responseObject classType:(Class)classType success:(void (^)(Reaper *reaper,id object))success
+              failure:(void (^)(Reaper *reaper, NSError *error))failure
+{
+    NSDictionary* dict = responseObject;
+    if([responseObject isKindOfClass:[NSDictionary class]])
+    {
+        NSError* error = [self checkError:responseObject];
+        if(error)
+        {
             failure(self,error);
             return;
         }
-        NSError* error = nil;
-        id value = [classType objectWithJoy:dict error:&error];
-        if(error)
-            return failure(self,error);
-        if([value isKindOfClass:[NSManagedObject class]])
-        {
-            [classType updateObject:value success:^(id item){
-                success(self,item);
-            }failure:^(NSError* error){
-                failure(self,error);
-            }];
-        }
-        else
-            success(self,value);
+        NSDictionary* response = responseObject[@"response"];
+        if(response)
+            dict = response; //fairly typical for API response, like in the commonly used RoR gem, RocketPants.
     }
-    failure:^(AFHTTPRequestOperation *operation, NSError *error)
+    if(![dict isKindOfClass:[NSDictionary class]])
     {
+        NSError* error = [self errorWithDetail:NSLocalizedString(@"Create response object is not of NSDictonary class", nil) code:ReaperErrorCodeInvalidResponse];
         failure(self,error);
-    }];
-
+        return;
+    }
+    NSError* error = nil;
+    id value = [classType objectWithJoy:dict error:&error];
+    if(error)
+        return failure(self,error);
+    if([value isKindOfClass:[NSManagedObject class]])
+    {
+        [classType updateObject:value success:^(id item){
+            success(self,item);
+        }failure:^(NSError* error){
+            failure(self,error);
+        }];
+    }
+    else
+        success(self,value);
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 -(NSError*)checkError:(id)response
