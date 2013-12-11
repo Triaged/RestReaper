@@ -11,6 +11,11 @@
 #import "DCModel.h"
 #import <objc/runtime.h>
 #import "RRUploadObject.h"
+#if TARGET_OS_IPHONE
+typedef UIImage RRImage;
+#else
+typedef NSImage RRImage;
+#endif
 
 @implementation Reaper
 
@@ -237,7 +242,7 @@
     for(id key in parameters)
     {
         //automatic lookup attempts
-        if([parameters[key] isKindOfClass:[UIImage class]] || [parameters[key] isKindOfClass:[NSData class]] || [parameters[key] isKindOfClass:[NSURL class]] || [parameters[key] isKindOfClass:[RRUploadObject class]])
+        if([parameters[key] isKindOfClass:[RRImage class]] || [parameters[key] isKindOfClass:[NSData class]] || [parameters[key] isKindOfClass:[NSURL class]] || [parameters[key] isKindOfClass:[RRUploadObject class]])
         {
             if(!formDict)
                 formDict = [NSMutableDictionary dictionary];
@@ -273,7 +278,7 @@
             obj.data =  [bitmapRep representationUsingType:NSJPEGFileType properties:@{NSImageCompressionFactor: @0.5}];
             obj.mimeType = @"image/jpeg";
             obj.fileName = NSLocalizedString(@"image.jpg", nil);
-            [formDict setObject: forKey:key];
+            [formDict setObject:obj forKey:key];
             multiForm = YES;
             [newParams removeObjectForKey:key];
         }
