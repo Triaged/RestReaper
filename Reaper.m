@@ -67,23 +67,39 @@ typedef NSImage RRImage;
          }
          BOOL isCoreData = NO;
          NSMutableArray* gather = [NSMutableArray arrayWithCapacity:array.count];
+         NSArray *keys = nil;
          for(id object in array)
          {
              if([NSNull null] != (NSNull*)object)
              {
                  NSError* error = nil;
-                 id value = [classType objectWithJoy:object error:&error];
+                 JSONJoy* mapper = [[JSONJoy alloc] initWithClass:classType];
+                 id value = [mapper process:object error:&error];
+                 //id value = [classType objectWithJoy:object error:&error];
                  if(error)
                      return failure(self,error);
                  if(value)
                      [gather addObject:value];
                  if([value isKindOfClass:[NSManagedObject class]])
+                 {
+                     NSArray *props = [mapper propertyKeys];
+                     NSMutableArray *gatherKeys = [NSMutableArray arrayWithCapacity:keys.count];
+                     for(NSString *name in props)
+                     {
+                         NSString *checkName = [JSONJoy convertToJsonName:name];
+                         if([object valueForKey:name] || [object valueForKey:checkName])
+                             [gatherKeys addObject:name];
+                         if([name isEqualToString:@"objID"] && [object valueForKey:@"id"])
+                             [gatherKeys addObject:name];
+                     }
+                     keys = gatherKeys;
                      isCoreData = YES;
+                 }
              }
          }
          if(isCoreData)
          {
-             [classType updateObjects:gather success:^(id items){
+             [classType updateObjects:gather properties:keys success:^(id items){
                  success(self,items);
              }failure:^(NSError* error){
                  failure(self,error);
