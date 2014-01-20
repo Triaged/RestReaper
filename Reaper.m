@@ -132,7 +132,7 @@ typedef NSImage RRImage;
                  return;
              }
              NSDictionary* response = responseObject[@"response"];
-             if(response)
+             if(response && [response isKindOfClass:[NSDictionary class]])
                  dict = response; //fairly typical for API response, like in the commonly used RoR gem, RocketPants.
          }
          if(![dict isKindOfClass:[NSDictionary class]])
@@ -142,14 +142,29 @@ typedef NSImage RRImage;
              return;
          }
          NSError* error = nil;
-         id value = [classType objectWithJoy:dict error:&error];
+         JSONJoy* mapper = [[JSONJoy alloc] initWithClass:classType];
+         id value = [mapper process:object error:&error];
+         //id value = [classType objectWithJoy:object error:&error];
          if(error)
              return failure(self,error);
          if([value isKindOfClass:[NSManagedObject class]])
          {
+             NSArray *props = [mapper propertyKeys];
+             NSMutableArray *gatherKeys = [NSMutableArray arrayWithCapacity:keys.count];
+             for(NSString *name in props)
+             {
+                 NSString *checkName = [JSONJoy convertToJsonName:name];
+                 if([object valueForKey:name] || [object valueForKey:checkName])
+                     [gatherKeys addObject:name];
+                 if([name isEqualToString:@"objID"] && [object valueForKey:@"id"])
+                     [gatherKeys addObject:name];
+             }
+             keys = gatherKeys;
+             isCoreData = YES;
+
              [value saveOrUpdate:^(id item){
                  success(self,item);
-             }failure:^(NSError* error){
+             }properties:keys failure:^(NSError* error){
                  failure(self,error);
              }];
          }
@@ -221,20 +236,32 @@ typedef NSImage RRImage;
                  return;
              }
              NSDictionary* response = responseObject[@"response"];
-             if(response)
+             if(response && [response isKindOfClass:[NSDictionary class]])
                  dict = response; //fairly typical for API response, like in the commonly used RoR gem, RocketPants.
          }
          if([dict isKindOfClass:[NSDictionary class]])
          {
              NSError* error = nil;
-             id value = [classType objectWithJoy:dict error:&error];
+             JSONJoy* mapper = [[JSONJoy alloc] initWithClass:classType];
+             id value = [mapper process:object error:&error];
+             //id value = [classType objectWithJoy:object error:&error];
              if(error)
                  return failure(self,error);
              if([value isKindOfClass:[NSManagedObject class]])
              {
+                 NSArray *props = [mapper propertyKeys];
+                 NSMutableArray *gatherKeys = [NSMutableArray arrayWithCapacity:keys.count];
+                 for(NSString *name in props)
+                 {
+                     NSString *checkName = [JSONJoy convertToJsonName:name];
+                     if([object valueForKey:name] || [object valueForKey:checkName])
+                         [gatherKeys addObject:name];
+                     if([name isEqualToString:@"objID"] && [object valueForKey:@"id"])
+                         [gatherKeys addObject:name];
+                 }
                  [value saveOrUpdate:^(id item){
                      success(self,item);
-                 }failure:^(NSError* error){
+                 }properties:keys failure:^(NSError* error){
                      failure(self,error);
                  }];
                  return;
@@ -374,7 +401,7 @@ typedef NSImage RRImage;
             return;
         }
         NSDictionary* response = responseObject[@"response"];
-        if(response)
+        if(response && [response isKindOfClass:[NSDictionary class]])
             dict = response; //fairly typical for API response, like in the commonly used RoR gem, RocketPants.
     }
     if(![dict isKindOfClass:[NSDictionary class]])
