@@ -83,7 +83,7 @@ typedef NSImage RRImage;
                  if([value isKindOfClass:[NSManagedObject class]])
                  {
                      NSArray *props = [mapper propertyKeys];
-                     NSMutableArray *gatherKeys = [NSMutableArray arrayWithCapacity:keys.count];
+                     NSMutableArray *gatherKeys = [NSMutableArray arrayWithCapacity:props.count];
                      for(NSString *name in props)
                      {
                          NSString *checkName = [JSONJoy convertToJsonName:name];
@@ -143,28 +143,25 @@ typedef NSImage RRImage;
          }
          NSError* error = nil;
          JSONJoy* mapper = [[JSONJoy alloc] initWithClass:classType];
-         id value = [mapper process:object error:&error];
+         id value = [mapper process:dict error:&error];
          //id value = [classType objectWithJoy:object error:&error];
          if(error)
              return failure(self,error);
          if([value isKindOfClass:[NSManagedObject class]])
          {
              NSArray *props = [mapper propertyKeys];
-             NSMutableArray *gatherKeys = [NSMutableArray arrayWithCapacity:keys.count];
+             NSMutableArray *gatherKeys = [NSMutableArray arrayWithCapacity:props.count];
              for(NSString *name in props)
              {
                  NSString *checkName = [JSONJoy convertToJsonName:name];
-                 if([object valueForKey:name] || [object valueForKey:checkName])
+                 if([dict valueForKey:name] || [dict valueForKey:checkName])
                      [gatherKeys addObject:name];
-                 if([name isEqualToString:@"objID"] && [object valueForKey:@"id"])
+                 if([name isEqualToString:@"objID"] && [dict valueForKey:@"id"])
                      [gatherKeys addObject:name];
              }
-             keys = gatherKeys;
-             isCoreData = YES;
-
              [value saveOrUpdate:^(id item){
                  success(self,item);
-             }properties:keys failure:^(NSError* error){
+             }properties:gatherKeys failure:^(NSError* error){
                  failure(self,error);
              }];
          }
@@ -243,25 +240,25 @@ typedef NSImage RRImage;
          {
              NSError* error = nil;
              JSONJoy* mapper = [[JSONJoy alloc] initWithClass:classType];
-             id value = [mapper process:object error:&error];
+             id value = [mapper process:dict error:&error];
              //id value = [classType objectWithJoy:object error:&error];
              if(error)
                  return failure(self,error);
              if([value isKindOfClass:[NSManagedObject class]])
              {
                  NSArray *props = [mapper propertyKeys];
-                 NSMutableArray *gatherKeys = [NSMutableArray arrayWithCapacity:keys.count];
+                 NSMutableArray *gatherKeys = [NSMutableArray arrayWithCapacity:props.count];
                  for(NSString *name in props)
                  {
                      NSString *checkName = [JSONJoy convertToJsonName:name];
-                     if([object valueForKey:name] || [object valueForKey:checkName])
+                     if([dict valueForKey:name] || [dict valueForKey:checkName])
                          [gatherKeys addObject:name];
-                     if([name isEqualToString:@"objID"] && [object valueForKey:@"id"])
+                     if([name isEqualToString:@"objID"] && [dict valueForKey:@"id"])
                          [gatherKeys addObject:name];
                  }
                  [value saveOrUpdate:^(id item){
                      success(self,item);
-                 }properties:keys failure:^(NSError* error){
+                 }properties:gatherKeys failure:^(NSError* error){
                      failure(self,error);
                  }];
                  return;
