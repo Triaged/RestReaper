@@ -48,8 +48,7 @@ typedef NSImage RRImage;
          success:(void (^)(Reaper *reaper,NSArray* objects))success
          failure:(void (^)(Reaper *reaper, NSError *error))failure
 {
-    [self.netManager GET:url parameters:parameters success:^(AFHTTPRequestOperation *operation, id responseObject)
-     {
+    [self.netManager GET:url parameters:parameters success:^(AFHTTPRequestOperation *operation, id responseObject){
          NSArray* array = responseObject;
          NSError* error = [self checkError:responseObject];
          if(error)
@@ -57,8 +56,14 @@ typedef NSImage RRImage;
              failure(self,error);
              return;
          }
-         if([responseObject isKindOfClass:[NSDictionary class]])
+         if([responseObject isKindOfClass:[NSDictionary class]] && responseObject[@"response"])
              array = responseObject[@"response"]; //fairly typical for API response, like in the commonly used RoR gem, RocketPants.
+         if([array isKindOfClass:[NSDictionary class]])
+         {
+             //well this is super not standard, but we will try to work around it
+             [self createResponse:array classType:classType success:success failure:failure check:YES];
+             return;
+         }
          if(![array isKindOfClass:[NSArray class]])
          {
              NSError* error = [self errorWithDetail:NSLocalizedString(@"Index response object is not of NSArray class", nil) code:ReaperErrorCodeInvalidResponse];
@@ -66,6 +71,7 @@ typedef NSImage RRImage;
              return;
          }
          BOOL isCoreData = NO;
+         JSONJoy* mapper = [[JSONJoy alloc] initWithClass:classType];
          NSMutableArray* gather = [NSMutableArray arrayWithCapacity:array.count];
          NSArray *keys = nil;
          for(id object in array)
@@ -73,7 +79,6 @@ typedef NSImage RRImage;
              if([NSNull null] != (NSNull*)object)
              {
                  NSError* error = nil;
-                 JSONJoy* mapper = [[JSONJoy alloc] initWithClass:classType];
                  id value = [mapper process:object error:&error];
                  //id value = [classType objectWithJoy:object error:&error];
                  if(error)
@@ -108,8 +113,7 @@ typedef NSImage RRImage;
          else
              success(self,gather);
          
-     }
-                 failure:^(AFHTTPRequestOperation *operation, NSError *error)
+     } failure:^(AFHTTPRequestOperation *operation, NSError *error)
      {
          failure(self,error);
      }];
@@ -120,57 +124,9 @@ typedef NSImage RRImage;
         success:(void (^)(Reaper *reaper,id object))success
         failure:(void (^)(Reaper *reaper, NSError *error))failure
 {
-    [self.netManager GET:url parameters:parameters success:^(AFHTTPRequestOperation *operation, id responseObject)
-     {
-         NSDictionary* dict = responseObject;
-         if([responseObject isKindOfClass:[NSDictionary class]])
-         {
-             NSError* error = [self checkError:responseObject];
-             if(error)
-             {
-                 failure(self,error);
-                 return;
-             }
-             NSDictionary* response = responseObject[@"response"];
-             if(response && [response isKindOfClass:[NSDictionary class]])
-                 dict = response; //fairly typical for API response, like in the commonly used RoR gem, RocketPants.
-         }
-         if(![dict isKindOfClass:[NSDictionary class]])
-         {
-             NSError* error = [self errorWithDetail:NSLocalizedString(@"Show response object is not of NSDictonary class", nil) code:ReaperErrorCodeInvalidResponse];
-             failure(self,error);
-             return;
-         }
-         NSError* error = nil;
-         JSONJoy* mapper = [[JSONJoy alloc] initWithClass:classType];
-         id value = [mapper process:dict error:&error];
-         //id value = [classType objectWithJoy:object error:&error];
-         if(error)
-             return failure(self,error);
-         if([value isKindOfClass:[NSManagedObject class]])
-         {
-             NSArray *props = [mapper propertyKeys];
-             NSMutableArray *gatherKeys = [NSMutableArray arrayWithCapacity:props.count];
-             for(NSString *name in props)
-             {
-                 NSString *checkName = [JSONJoy convertToJsonName:name];
-                 if([dict valueForKey:name] || [dict valueForKey:checkName])
-                     [gatherKeys addObject:name];
-                 if([name isEqualToString:@"objID"] && [dict valueForKey:@"id"])
-                     [gatherKeys addObject:name];
-             }
-             [value saveOrUpdate:^(id item){
-                 success(self,item);
-             }properties:gatherKeys failure:^(NSError* error){
-                 failure(self,error);
-             }];
-         }
-         else
-             success(self,value);
-         
-     }
-                 failure:^(AFHTTPRequestOperation *operation, NSError *error)
-     {
+    [self.netManager GET:url parameters:parameters success:^(AFHTTPRequestOperation *operation, id responseObject){
+         [self createResponse:responseObject classType:classType success:success failure:failure check:YES];
+     } failure:^(AFHTTPRequestOperation *operation, NSError *error){
          failure(self,error);
      }];
 }
@@ -179,8 +135,7 @@ typedef NSImage RRImage;
            success:(void (^)(Reaper *reaper))success
            failure:(void (^)(Reaper *reaper, NSError *error))failure
 {
-    [self.netManager DELETE:url parameters:parameters success:^(AFHTTPRequestOperation *operation, id responseObject)
-     {
+    [self.netManager DELETE:url parameters:parameters success:^(AFHTTPRequestOperation *operation, id responseObject){
          NSError* error = [self checkError:responseObject];
          if(error)
          {
@@ -209,9 +164,7 @@ typedef NSImage RRImage;
          }
          else
              success(self);
-     }
-                    failure:^(AFHTTPRequestOperation *operation, NSError *error)
-     {
+     }failure:^(AFHTTPRequestOperation *operation, NSError *error){
          failure(self,error);
      }];
     
@@ -221,52 +174,9 @@ typedef NSImage RRImage;
           success:(void (^)(Reaper *reaper,id object))success
           failure:(void (^)(Reaper *reaper, NSError *error))failure
 {
-    [self.netManager PUT:url parameters:parameters success:^(AFHTTPRequestOperation *operation, id responseObject)
-     {
-         NSDictionary* dict = responseObject;
-         if([responseObject isKindOfClass:[NSDictionary class]])
-         {
-             NSError* error = [self checkError:responseObject];
-             if(error)
-             {
-                 failure(self,error);
-                 return;
-             }
-             NSDictionary* response = responseObject[@"response"];
-             if(response && [response isKindOfClass:[NSDictionary class]])
-                 dict = response; //fairly typical for API response, like in the commonly used RoR gem, RocketPants.
-         }
-         if([dict isKindOfClass:[NSDictionary class]])
-         {
-             NSError* error = nil;
-             JSONJoy* mapper = [[JSONJoy alloc] initWithClass:classType];
-             id value = [mapper process:dict error:&error];
-             //id value = [classType objectWithJoy:object error:&error];
-             if(error)
-                 return failure(self,error);
-             if([value isKindOfClass:[NSManagedObject class]])
-             {
-                 NSArray *props = [mapper propertyKeys];
-                 NSMutableArray *gatherKeys = [NSMutableArray arrayWithCapacity:props.count];
-                 for(NSString *name in props)
-                 {
-                     NSString *checkName = [JSONJoy convertToJsonName:name];
-                     if([dict valueForKey:name] || [dict valueForKey:checkName])
-                         [gatherKeys addObject:name];
-                     if([name isEqualToString:@"objID"] && [dict valueForKey:@"id"])
-                         [gatherKeys addObject:name];
-                 }
-                 [value saveOrUpdate:^(id item){
-                     success(self,item);
-                 }properties:gatherKeys failure:^(NSError* error){
-                     failure(self,error);
-                 }];
-                 return;
-             }
-         }
-         success(self,nil);
-     }
-                 failure:^(AFHTTPRequestOperation *operation, NSError *error)
+    [self.netManager PUT:url parameters:parameters success:^(AFHTTPRequestOperation *operation, id responseObject){
+         [self createResponse:responseObject classType:classType success:success failure:failure check:YES];
+     } failure:^(AFHTTPRequestOperation *operation, NSError *error)
      {
          failure(self,error);
      }];
@@ -362,23 +272,17 @@ typedef NSImage RRImage;
                 else
                     [formData appendPartWithFormData:obj.data name:key];
             }
-        }
-                      success:^(AFHTTPRequestOperation *operation, id responseObject){
-                          [self createResponse:responseObject classType:classType success:success failure:failure];
-                      }
-                      failure:^(AFHTTPRequestOperation *operation, NSError *error)
-         {
-             failure(self,error);
-         }];
+        }success:^(AFHTTPRequestOperation *operation, id responseObject){
+            [self createResponse:responseObject classType:classType success:success failure:failure check:NO];
+        }failure:^(AFHTTPRequestOperation *operation, NSError *error){
+            failure(self,error);
+        }];
     }
     else
     {
-        [self.netManager POST:url parameters:parameters success:^(AFHTTPRequestOperation *operation, id responseObject)
-         {
-             [self createResponse:responseObject classType:classType success:success failure:failure];
-         }
-                      failure:^(AFHTTPRequestOperation *operation, NSError *error)
-         {
+        [self.netManager POST:url parameters:parameters success:^(AFHTTPRequestOperation *operation, id responseObject){
+             [self createResponse:responseObject classType:classType success:success failure:failure check:NO];
+         }failure:^(AFHTTPRequestOperation *operation, NSError *error){
              failure(self,error);
          }];
     }
@@ -386,7 +290,7 @@ typedef NSImage RRImage;
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 -(void)createResponse:(id)responseObject classType:(Class)classType success:(void (^)(Reaper *reaper,id object))success
-              failure:(void (^)(Reaper *reaper, NSError *error))failure
+              failure:(void (^)(Reaper *reaper, NSError *error))failure check:(BOOL)check
 {
     NSDictionary* dict = responseObject;
     if([responseObject isKindOfClass:[NSDictionary class]])
@@ -401,26 +305,45 @@ typedef NSImage RRImage;
         if(response && [response isKindOfClass:[NSDictionary class]])
             dict = response; //fairly typical for API response, like in the commonly used RoR gem, RocketPants.
     }
-    if(![dict isKindOfClass:[NSDictionary class]])
+    if(![dict isKindOfClass:[NSDictionary class]] && check)
     {
         NSError* error = [self errorWithDetail:NSLocalizedString(@"Create response object is not of NSDictonary class", nil) code:ReaperErrorCodeInvalidResponse];
         failure(self,error);
         return;
     }
-    NSError* error = nil;
-    id value = [classType objectWithJoy:dict error:&error];
-    if(error)
-        return failure(self,error);
-    if([value isKindOfClass:[NSManagedObject class]])
+    if([dict isKindOfClass:[NSDictionary class]])
     {
-        [classType updateObject:value success:^(id item){
-            success(self,item);
-        }failure:^(NSError* error){
-            failure(self,error);
-        }];
+        NSError* error = nil;
+        JSONJoy* mapper = [[JSONJoy alloc] initWithClass:classType];
+        id value = [mapper process:dict error:&error];
+        if(error)
+            return failure(self,error);
+        if([value isKindOfClass:[NSManagedObject class]])
+        {
+            NSArray *props = [mapper propertyKeys];
+            NSMutableArray *gatherKeys = [NSMutableArray arrayWithCapacity:props.count];
+            for(NSString *name in props)
+            {
+                NSString *checkName = [JSONJoy convertToJsonName:name];
+                if([dict valueForKey:name] || [dict valueForKey:checkName])
+                    [gatherKeys addObject:name];
+                if([name isEqualToString:@"objID"] && [dict valueForKey:@"id"])
+                    [gatherKeys addObject:name];
+            }
+            [classType updateObject:value properties:gatherKeys success:^(id item){
+                success(self,item);
+            }failure:^(NSError* error){
+                failure(self,error);
+            }];
+        }
+        else
+            success(self,value);
     }
     else
-        success(self,value);
+    {
+        //POST and PUT can not return anything, which is bad in practice, but it does happen...
+        success(self,nil);
+    }
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 -(NSError*)checkError:(id)response
