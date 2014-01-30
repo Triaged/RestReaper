@@ -71,7 +71,7 @@ typedef NSImage RRImage;
              return;
          }
          BOOL isCoreData = NO;
-         JSONJoy* mapper = [[JSONJoy alloc] initWithClass:classType];
+         JSONJoy* mapper = [classType jsonMapper];
          NSMutableArray* gather = [NSMutableArray arrayWithCapacity:array.count];
          NSArray *keys = nil;
          for(id object in array)
@@ -314,7 +314,7 @@ typedef NSImage RRImage;
     if([dict isKindOfClass:[NSDictionary class]])
     {
         NSError* error = nil;
-        JSONJoy* mapper = [[JSONJoy alloc] initWithClass:classType];
+        JSONJoy* mapper = [classType jsonMapper];
         id value = [mapper process:dict error:&error];
         if(error)
             return failure(self,error);
